@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Pro Admin Panel</title>
+    <style>
+        @import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap)');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: #0f111a; color: #e2e8f0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Login Screen */
+        #loginScreen { position: fixed; inset: 0; background: #0f111a; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: #1a1d27; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 350px; text-align: center; }
+        .login-box h2 { color: #00ff88; margin-bottom: 20px; font-weight: 800; }
+        
+        /* Sidebar */
+        .sidebar { width: 250px; background: #151822; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #2d3342; }
+        .sidebar h2 { color: #00ff88; font-size: 22px; margin-bottom: 30px; text-align: center; letter-spacing: 1px; }
+        .nav-btn { background: transparent; color: #8f9bba; border: none; padding: 15px; text-align: left; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
+        .nav-btn:hover, .nav-btn.active { background: #00ff8822; color: #00ff88; }
+        
+        /* Main Content */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .section { display: none; animation: fadeIn 0.4s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Cards & Inputs */
+        .card { background: #1a1d27; padding: 25px; border-radius: 12px; border: 1px solid #2d3342; margin-bottom: 25px; }
+        .card h3 { color: #fff; margin-bottom: 15px; border-bottom: 1px solid #2d3342; padding-bottom: 10px; }
+        
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background: #0f111a; border: 1px solid #2d3342; color: #fff; border-radius: 6px; outline: none; }
+        input:focus, textarea:focus { border-color: #00ff88; }
+        
+        button.action-btn { background: #00ff88; color: #0f111a; border: none; padding: 12px 20px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.3s; width: 100%; }
+        button.action-btn:hover { background: #00cc6a; transform: translateY(-2px); }
+        
+        pre { background: #0a0c10; padding: 15px; border-radius: 6px; color: #00ff88; overflow-x: auto; font-family: monospace; border: 1px solid #2d3342; }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stat-box { background: #232736; padding: 20px; border-radius: 8px; text-align: center; border-top: 3px solid #00ff88; }
+        .stat-box h4 { color: #8f9bba; margin-bottom: 10px; font-size: 14px; }
+        .stat-box p { font-size: 20px; font-weight: bold; color: #fff; }
+
+        /* Toast Notification */
+        #toast { visibility: hidden; min-width: 250px; background-color: #00ff88; color: #0f111a; text-align: center; border-radius: 5px; padding: 15px; position: fixed; z-index: 1001; right: 30px; bottom: 30px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,255,136,0.3); }
+        #toast.show { visibility: visible; animation: slideIn 0.5s, slideOut 0.5s 2.5s; }
+        @keyframes slideIn { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes slideOut { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="toast">Message here</div>
+
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>Termux Pro Panel</h2>
+            <input type="text" id="username" placeholder="Admin Username">
+            <input type="password" id="password" placeholder="Password">
+            <button class="action-btn" onclick="login()">Access Panel</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar" style="display: none;">
+        <h2>⚡ PRO PANEL</h2>
+        <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" onclick="switchTab('terminal')">💻 Web Terminal</button>
+        <button class="nav-btn" onclick="switchTab('vps')">👤 VPS Manager</button>
+        <button class="nav-btn" onclick="switchTab('hosting')">🌍 Web Hosting</button>
+    </div>
+
+    <div class="main-content" id="mainContent" style="display: none;">
+        
+        <div id="dashboard" class="section active">
+            <div class="card">
+                <h3>System Status Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-box"><h4>RAM Usage</h4><p id="ramStats">Loading...</p></div>
+                    <div class="stat-box"><h4>Storage</h4><p id="storageStats">Loading...</p></div>
+                    <div class="stat-box"><h4>OS Core</h4><p id="osStats">Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="terminal" class="section">
+            <div class="card">
+                <h3>Root Terminal Access</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="cmdInput" placeholder="root@localhost:~#  Enter command...">
+                    <button class="action-btn" style="width: 120px;" onclick="sendCommand()">Execute</button>
+                </div>
+                <pre id="cmdOutput" style="min-height: 200px;">Awaiting command execution...</pre>
+            </div>
+        </div>
+
+        <div id="vps" class="section">
+            <div class="card">
+                <h3>Deploy New VPS & Generate Link</h3>
+                <input type="text" id="newUsername" placeholder="Client Username (e.g. John)">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="userRam" placeholder="Assign RAM (e.g. 2GB)">
+                    <input type="text" id="userStorage" placeholder="Assign Storage (e.g. 10GB)">
+                </div>
+                <button class="action-btn" onclick="createVPS()">Deploy via SSHX</button>
+                <div style="margin-top: 20px;">
+                    <h4>Recent Deployments:</h4>
+                    <pre id="vpsResult">No active VPS deployed yet.</pre>
+                </div>
+            </div>
+        </div>
+
+        <div id="hosting" class="section">
+            <div class="card">
+                <h3>Ngrok Live Web Hosting</h3>
+                <textarea id="htmlCode" rows="8" placeholder="<!DOCTYPE html>... Paste your source code here"></textarea>
+                <input type="text" id="ngrokToken" placeholder="Ngrok Authtoken (Optional if already set)">
+                <button class="action-btn" onclick="hostWebsite()">Launch Website</button>
+                <div style="margin-top: 20px;">
+                    <h4>Live URL:</h4>
+                    <pre id="hostResult">Server offline.</pre>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            if(tabId === 'dashboard') loadStats();
+        }
+
+        async function login() {
+            const res = await fetch('/api/login', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username.value, password: password.value })
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('sidebar').style.display = 'flex';
+                document.getElementById('mainContent').style.display = 'block';
+                showToast("Login Successful! Welcome Admin.");
+                loadStats();
+            } else {
+                showToast("Error: " + data.message);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('ramStats').innerText = `${data.freeMem} GB Free`;
+                document.getElementById('storageStats').innerText = `${data.freeStorage} Free`;
+                document.getElementById('osStats').innerText = data.os.toUpperCase();
+            } catch (e) {
+                console.log("Stats loading...");
+            }
+        }
+
+        async function sendCommand() {
+            document.getElementById('cmdOutput').innerText = "Running command...";
+            const res = await fetch('/api/terminal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmdInput.value })
+            });
+            const data = await res.json();
+            document.getElementById('cmdOutput').innerText = data.output;
+            showToast("Command Executed!");
+        }
+
+        async function createVPS() {
+            document.getElementById('vpsResult').innerText = "Provisioning OS and generating SSHX... (Please wait ~8s)";
+            const res = await fetch('/api/create-vps', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: newUsername.value, ram: userRam.value, storage: userStorage.value })
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('vpsResult').innerHTML = `✅ [${newUsername.value}] VPS Active!\n🔗 URL: <a href="${data.link}" target="_blank" style="color: #00ff88;">${data.link}</a>`;
+                showToast("VPS Deployed Successfully!");
+            } else {
+                document.getElementById('vpsResult').innerText = "Failed: " + data.message;
+                showToast("Deployment Failed!");
+            }
+        }
+
+        async function hostWebsite() {
+            document.getElementById('hostResult').innerText = "Starting Local Server & Ngrok Tunnel... (Wait ~6s)";
+            const res = await fetch('/api/host', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ htmlCode: htmlCode.value, ngrokToken: ngrokToken.value })
+            });
+            const data = await res.json();
+            if(data.url) {
+                document.getElementById('hostResult').innerHTML = `✅ Website is Live!\n🔗 URL: <a href="${data.url}" target="_blank" style="color: #00ff88;">${data.url}</a>`;
+                showToast("Website is Live!");
+            } else {
+                document.getElementById('hostResult').innerText = "Failed to fetch live URL.";
+                showToast("Hosting Error!");
+            }
+        }
+        
+        // Auto refresh stats every 10 seconds if on dashboard
+        setInterval(() => {
+            if(document.getElementById('dashboard').classList.contains('active')) loadStats();
+        }, 10000);
+    </script>
+</body>
+</html>
