@@ -40,7 +40,7 @@ app.get('/api/stats', (req, res) => {
     });
 });
 
-// --- LIVE TERMINAL (Exact Real-Time Streaming) ---
+// --- LIVE TERMINAL (With Warning Filter) ---
 app.post('/api/terminal-live', (req, res) => {
     const { command } = req.body;
     res.setHeader('Content-Type', 'text/plain');
@@ -48,31 +48,34 @@ app.post('/api/terminal-live', (req, res) => {
 
     const child = spawn('proot-distro', ['login', process.env.OS_INSTALLED, '--', 'bash', '-c', command]);
 
+    // Clean output function to hide annoying proot warnings
+    const cleanOutput = (data) => {
+        let text = data.toString();
+        // Filters out the specific proot warning seen in your screenshot
+        text = text.replace(/proot warning: can't sanitize binding.*?(\r?\n|$)/g, '');
+        return text;
+    };
+
     child.stdout.on('data', (data) => {
-        res.write(data.toString());
+        let cleaned = cleanOutput(data);
+        if (cleaned) res.write(cleaned);
     });
 
     child.stderr.on('data', (data) => {
-        res.write(data.toString());
+        let cleaned = cleanOutput(data);
+        if (cleaned) res.write(cleaned);
     });
 
-    child.on('close', () => {
-        res.end();
-    });
-
-    child.on('error', (err) => {
-        res.write(`\nError: ${err.message}`);
-        res.end();
-    });
+    child.on('close', () => res.end());
+    child.on('error', (err) => { res.write(`\nError: ${err.message}`); res.end(); });
 });
 
-// --- FIXED: Create VPS (Bulletproof SSHX using Nohup) ---
+// --- Create VPS (Bulletproof SSHX Link Generator) ---
 app.post('/api/create-vps', (req, res) => {
     const { vpsName, username, ram, storage } = req.body;
     const sessionId = Date.now(); 
     const safeUser = username.replace(/[^a-z0-9]/g, '').toLowerCase() || 'vpsuser';
 
-    // The Ultimate Fix: Run sshx in background and read its log file
     const setupScript = `
         apt-get update -y > /dev/null 2>&1
         apt-get install curl sudo wget -y > /dev/null 2>&1
@@ -85,15 +88,11 @@ app.post('/api/create-vps', (req, res) => {
             useradd -m -s /bin/bash ${safeUser}
         fi
         
-        # Kill any existing sshx for this user
         pkill -u ${safeUser} sshx
-        
         rm -f /tmp/sshx_${safeUser}.log
         
-        # Start sshx in background (nohup) and pipe output to log file
         su - ${safeUser} -c "nohup sshx > /tmp/sshx_${safeUser}.log 2>&1 &"
         
-        # Wait for the URL to be generated in the log
         sleep 4
         cat /tmp/sshx_${safeUser}.log
     `;
@@ -106,8 +105,8 @@ app.post('/api/create-vps', (req, res) => {
 
     const handleData = (data) => {
         const output = data.toString();
-        // Regex to catch exact URL
-        const match = output.match(/https:\/\/sshx\.io\/s\/[a-zA-Z0-9]+/);
+        // Stronger Regex to catch exact URL properly
+        const match = output.match(/https:\/\/sshx\.io\/s\/[a-zA-Z0-9_-]+/);
         if(match && !linkGenerated) {
             linkGenerated = true;
             const link = match[0].replace(/\x1B\[[0-9;]*m/g, ''); 
@@ -129,7 +128,7 @@ app.post('/api/create-vps', (req, res) => {
             delete runningSessions[sessionId];
             res.json({ success: false, message: "Timeout: SSHX link not generated. Try again." });
         }
-    }, 12000); 
+    }, 15000); 
 });
 
 // --- Kill VPS Session ---
@@ -139,7 +138,6 @@ app.post('/api/kill-vps', (req, res) => {
         runningSessions[id].kill('SIGKILL'); 
         delete runningSessions[id];
     }
-    // Also mark as terminated in DB
     const vpsIndex = db.vps.findIndex(v => v.id === parseInt(id));
     if(vpsIndex !== -1) { 
         db.vps[vpsIndex].status = 'Terminated'; 
