@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sinket VPS Panel - Mobile-Friendly</title>
+    <title>Sinket VPS Panel</title>
     <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet">
     <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
     <style>
@@ -37,31 +37,28 @@
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .puffer-card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .puffer-card h3 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
-        .puffer-card-value { font-size: 34px; font-weight: 700; color: #fff; }
+        .puffer-card-value { font-size: 34px; font-weight: 700; color: #fff; text-transform: uppercase; }
 
         .input-group { margin-bottom: 20px; }
         .input-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
         .input-field { width: 100%; padding: 12px 15px; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; font-size: 14px; outline: none; }
         .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.2); }
         
-        /* Updated OS Images CSS */
-        .os-images-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-        .os-radio { display: none; }
-        .os-label { border: 2px solid var(--border); border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; background: #111; }
-        .os-label:hover { border-color: #555; }
-        .os-radio:checked + .os-label { border-color: var(--accent); background: rgba(48, 209, 88, 0.1); }
-        .os-icon { width: 45px; height: 45px; margin-bottom: 10px; object-fit: contain; }
-        .os-name { font-weight: bold; color: #fff; font-size: 13px; }
+        /* Dynamic OS Label */
+        .os-label { border: 2px solid var(--accent); background: rgba(48, 209, 88, 0.1); border-radius: 12px; padding: 20px; text-align: center; position: relative; width: 100%; max-width: 300px; margin-bottom: 20px; }
+        .os-name { font-weight: bold; color: #fff; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .os-check { position: absolute; top: 10px; right: 10px; color: var(--accent); font-size: 18px; }
 
         .btn { padding: 12px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; color: #fff; transition: 0.2s; }
         .btn-primary { background: linear-gradient(135deg, var(--accent), #248a3d); box-shadow: 0 4px 15px rgba(48,209,88,0.4); }
         .btn-primary:hover { transform: scale(1.02); }
         .btn-danger { background: linear-gradient(135deg, var(--danger), #b33a32); }
 
-        /* Bigger Terminal Setup */
-        .terminal-window { background: #000; border-radius: 10px; border: 1px solid #333; height: 500px; max-height: 60vh; font-family: 'SF Mono', monospace; padding: 20px; color: #0f0; overflow-y: auto; font-size: 14px; word-wrap: break-word; }
+        /* Bigger Terminal */
+        .terminal-window { background: #050505; border-radius: 10px; border: 1px solid #333; height: 65vh; min-height: 400px; font-family: 'SF Mono', monospace; padding: 20px; color: #0f0; overflow-y: auto; font-size: 14px; word-wrap: break-word; line-height: 1.5; }
         .term-input-row { display: flex; gap: 10px; margin-top: 15px; }
         .term-input { flex: 1; background: transparent; border: none; color: #fff; font-family: 'SF Mono', monospace; outline: none; font-size: 14px; }
+        .terminal-output-stream { color: #fff; white-space: pre-wrap; font-family: 'SF Mono', monospace; }
 
         @media (max-width: 768px) {
             .mobile-menu-icon { display: block; }
@@ -70,8 +67,7 @@
             .content-area { padding: 15px; }
             .card-grid { grid-template-columns: 1fr; }
             .top-nav-right { display: none; }
-            .terminal-window { height: 400px; } /* Mobile terminal adjusted */
-            .os-images-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+            .terminal-window { height: 50vh; }
         }
         
         .puffer-table-container { border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; margin-top: 20px; background: var(--bg-card); }
@@ -127,14 +123,14 @@
             </div>
 
             <div id="terminal" class="section">
-                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Termux Terminal</h1>
+                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Termux Terminal (Live Stream)</h1>
                 <div class="puffer-card" style="padding: 10px;">
                     <div class="terminal-window" id="termBody" onclick="document.getElementById('termInput').focus()">
-                        <div style="color: #888;">Authenticated. Termux Bash v5.0 Live.</div>
+                        <div style="color: #888; margin-bottom: 10px;">Authenticated. Terminal Connected to Backend.</div>
                         <div id="termOutput"></div>
                         <div class="term-input-row">
-                            <span style="color:var(--accent); font-weight:bold;">sinket:~#</span>
-                            <input type="text" class="term-input" id="termInput" onkeypress="handleCommand(event)" placeholder="Enter command...">
+                            <span style="color:var(--accent); font-weight:bold;">root:~#</span>
+                            <input type="text" class="term-input" id="termInput" onkeypress="handleStreamCommand(event)" placeholder="Enter command...">
                         </div>
                     </div>
                 </div>
@@ -143,38 +139,24 @@
             <div id="vps" class="section">
                 <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Deploy VPS Instance</h1>
                 <div class="puffer-card">
-                    <div class="input-group"><label class="input-label">VPS Instance Name</label><input type="text" id="vpsName" class="input-field" placeholder="John_Ubuntu_Node1"></div>
+                    <div class="input-group"><label class="input-label">VPS Instance Name</label><input type="text" id="vpsName" class="input-field" placeholder="John_Node1"></div>
                     <div class="input-group"><label class="input-label">Non-Root Username</label><input type="text" id="vpsUser" class="input-field" placeholder="e.g. user1"></div>
+                    
                     <div style="display: flex; gap: 15px;">
                         <div class="input-group" style="flex:1;"><label class="input-label">Assigned RAM</label><input type="text" id="vpsRam" class="input-field" value="2GB"></div>
-                        <div class="input-group" style="flex:1;"><label class="input-label">Storage</label><input type="text" id="vpsStorage" class="input-field" value="10GB"></div>
+                        <div class="input-group" style="flex:1;"><label class="input-label">Storage Limit</label><input type="text" id="vpsStorage" class="input-field" value="10GB"></div>
                     </div>
                     
-                    <label class="input-label">Select Operating System Image</label>
-                    <div class="os-images-grid">
-                        <input type="radio" name="os" id="osUbuntu" class="os-radio" checked value="ubuntu">
-                        <label for="osUbuntu" class="os-label">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Logo-ubuntu_cof-orange-hex.svg" class="os-icon">
-                            <div class="os-name">Ubuntu 22</div>
-                        </label>
-                        <input type="radio" name="os" id="osDebian" class="os-radio" value="debian">
-                        <label for="osDebian" class="os-label">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Openlogo-debian.png" class="os-icon">
-                            <div class="os-name">Debian</div>
-                        </label>
-                        <input type="radio" name="os" id="osAlpine" class="os-radio" value="alpine">
-                        <label for="osAlpine" class="os-label">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/dd/Alpine_Linux.svg" class="os-icon">
-                            <div class="os-name">Alpine Linux</div>
-                        </label>
-                    </div>
+                    <label class="input-label">Assigned Operating System</label>
+                    <div id="dynamicOsGrid">
+                        </div>
                     
-                    <button class="btn btn-primary" style="width: 100%;" onclick="createVPS()">🚀 Generate Secure Link</button>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="createVPS()">🚀 Generate Secure Link</button>
                 </div>
 
                 <div class="puffer-table-container">
                     <table class="puffer-table" id="vpsTable">
-                        <tr><th>Instance ID</th><th>Specs</th><th>Status</th><th>SSHX Link (Non-Root)</th><th>Action</th></tr>
+                        <tr><th>Instance ID</th><th>Assigned Specs</th><th>Status</th><th>SSHX Link (Non-Root)</th><th>Action</th></tr>
                     </table>
                 </div>
             </div>
@@ -240,24 +222,43 @@
             } else alert("Invalid Credentials");
         }
 
-        async function handleCommand(e) {
+        // --- THE EXACT LIVE STREAMING TERMINAL FUNCTION ---
+        async function handleStreamCommand(e) {
             if(e.key === 'Enter') {
                 const cmd = document.getElementById('termInput').value;
                 document.getElementById('termInput').value = '';
                 
                 const outDiv = document.getElementById('termOutput');
-                outDiv.innerHTML += `<div style="color:var(--accent); margin-top:10px;">sinket:~# ${cmd}</div>`;
-                outDiv.innerHTML += `<div style="color:#aaa;">Running...</div>`;
+                outDiv.innerHTML += `<div style="color:var(--accent); margin-top:10px;">root:~# ${cmd}</div>`;
+                
+                // Create a container for the incoming stream
+                const streamContainer = document.createElement('div');
+                streamContainer.className = 'terminal-output-stream';
+                outDiv.appendChild(streamContainer);
+                
                 document.getElementById('termBody').scrollTop = document.getElementById('termBody').scrollHeight;
 
-                const res = await fetch('/api/terminal', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ command: cmd })
-                });
-                const data = await res.json();
-                
-                outDiv.lastElementChild.innerHTML = `<div style="white-space:pre-wrap; color:#fff; word-wrap:break-word;">${data.output}</div>`;
-                document.getElementById('termBody').scrollTop = document.getElementById('termBody').scrollHeight;
+                try {
+                    const response = await fetch('/api/terminal-live', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ command: cmd })
+                    });
+                    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    
+                    // Read data chunk by chunk exactly as it arrives
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value, { stream: true });
+                        streamContainer.innerHTML += chunk;
+                        document.getElementById('termBody').scrollTop = document.getElementById('termBody').scrollHeight;
+                    }
+                } catch (err) {
+                    streamContainer.innerHTML += `\nError connecting to terminal server.`;
+                }
             }
         }
 
@@ -317,15 +318,25 @@
             const res = await fetch('/api/stats'); const data = await res.json();
             document.getElementById('ramStats').innerText = `${data.freeMem} / ${data.totalMem} GB`;
             document.getElementById('storageStats').innerText = data.freeStorage;
-            document.getElementById('osStats').innerText = data.os.toUpperCase();
+            
+            // Dynamic OS Label Injection based on Backend data
+            const currentOs = data.os ? data.os.toUpperCase() : "UNKNOWN";
+            document.getElementById('osStats').innerText = currentOs;
+            
+            document.getElementById('dynamicOsGrid').innerHTML = `
+                <div class="os-label">
+                    <div class="os-name">${currentOs} (Active Environment)</div>
+                    <span class="os-check">✓</span>
+                </div>
+            `;
         }
 
         function appendVpsTable(v) {
             const table = document.getElementById('vpsTable');
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><div style="font-weight:700;">${v.vpsName}</div><div style="color:var(--text-muted); font-size:11px">User: ${v.username}</div></td>
-                <td>${v.ram} / ${v.storage} GB</td>
+                <td><div style="font-weight:700;">${v.vpsName}</div><div style="color:var(--text-muted); font-size:11px">User: ${v.username} (OS: ${v.os.toUpperCase()})</div></td>
+                <td><span style="color:var(--accent)">${v.ram}</span> / <span style="color:#bf5af2">${v.storage}</span></td>
                 <td style="color: ${v.status === 'Running' ? 'var(--accent)' : 'var(--danger)'}"><b>${v.status}</b></td>
                 <td><a href="${v.link}" target="_blank" class="link-text">${v.link}</a></td>
                 <td>${v.status === 'Running' ? `<button class="btn btn-danger" style="font-size:11px; padding:6px 12px;" onclick="killVps('${v.id}', this)">Kill Session</button>` : `<span style="color:var(--text-muted)">Terminated</span>`}</td>
