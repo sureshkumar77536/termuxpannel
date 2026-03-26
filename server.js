@@ -10,6 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
+// --- Database Setup ---
 const DB_FILE = path.join(__dirname, 'sinket_db.json');
 let db = { vps: [], hosting: [] };
 if (fs.existsSync(DB_FILE)) {
@@ -19,6 +20,7 @@ const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 
 let runningSessions = {};
 
+// --- Authentication ---
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
@@ -28,6 +30,7 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// --- System Stats ---
 app.get('/api/stats', (req, res) => {
     const totalMem = (os.totalmem() / (1024 * 1024 * 1024)).toFixed(2);
     const freeMem = (os.freemem() / (1024 * 1024 * 1024)).toFixed(2);
@@ -37,71 +40,115 @@ app.get('/api/stats', (req, res) => {
     });
 });
 
-app.post('/api/terminal', (req, res) => {
+// --- LIVE TERMINAL (Exact Real-Time Streaming) ---
+app.post('/api/terminal-live', (req, res) => {
     const { command } = req.body;
-    exec(`proot-distro login ${process.env.OS_INSTALLED} -- bash -c "${command}"`, { timeout: 15000 }, (err, stdout, stderr) => {
-        let output = stdout || stderr;
-        res.json({ output: output.trim() || "Success (No output)" });
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const child = spawn('proot-distro', ['login', process.env.OS_INSTALLED, '--', 'bash', '-c', command]);
+
+    child.stdout.on('data', (data) => {
+        res.write(data.toString());
+    });
+
+    child.stderr.on('data', (data) => {
+        res.write(data.toString());
+    });
+
+    child.on('close', () => {
+        res.end();
+    });
+
+    child.on('error', (err) => {
+        res.write(`\nError: ${err.message}`);
+        res.end();
     });
 });
 
+// --- FIXED: Create VPS (Bulletproof SSHX using Nohup) ---
 app.post('/api/create-vps', (req, res) => {
     const { vpsName, username, ram, storage } = req.body;
     const sessionId = Date.now(); 
     const safeUser = username.replace(/[^a-z0-9]/g, '').toLowerCase() || 'vpsuser';
 
+    // The Ultimate Fix: Run sshx in background and read its log file
     const setupScript = `
         apt-get update -y > /dev/null 2>&1
-        apt-get install curl sudo -y > /dev/null 2>&1
+        apt-get install curl sudo wget -y > /dev/null 2>&1
+        
         if ! command -v sshx &> /dev/null; then
-            curl -sSf https://sshx.io/get | sh
+            curl -sSf https://sshx.io/get | sh > /dev/null 2>&1
         fi
+        
         if ! id -u ${safeUser} &>/dev/null; then
             useradd -m -s /bin/bash ${safeUser}
         fi
-        su - ${safeUser} -c "sshx -q"
+        
+        # Kill any existing sshx for this user
+        pkill -u ${safeUser} sshx
+        
+        rm -f /tmp/sshx_${safeUser}.log
+        
+        # Start sshx in background (nohup) and pipe output to log file
+        su - ${safeUser} -c "nohup sshx > /tmp/sshx_${safeUser}.log 2>&1 &"
+        
+        # Wait for the URL to be generated in the log
+        sleep 4
+        cat /tmp/sshx_${safeUser}.log
     `;
     
     const prootCommand = `proot-distro login ${process.env.OS_INSTALLED} -- bash -c '${setupScript}'`;
     const child = spawn('sh', ['-c', prootCommand]);
+    
     runningSessions[sessionId] = child;
     let linkGenerated = false;
 
     const handleData = (data) => {
         const output = data.toString();
+        // Regex to catch exact URL
         const match = output.match(/https:\/\/sshx\.io\/s\/[a-zA-Z0-9]+/);
         if(match && !linkGenerated) {
             linkGenerated = true;
             const link = match[0].replace(/\x1B\[[0-9;]*m/g, ''); 
-            const newVps = { id: sessionId, vpsName, username: safeUser, ram, storage, link, status: 'Running', date: new Date().toLocaleString() };
-            db.vps.push(newVps); saveDB();
+            
+            const newVps = { id: sessionId, vpsName, username: safeUser, ram, storage, link, status: 'Running', os: process.env.OS_INSTALLED, date: new Date().toLocaleString() };
+            db.vps.push(newVps); 
+            saveDB();
+            
             res.json({ success: true, vps: newVps });
         }
     };
+    
     child.stdout.on('data', handleData);
     child.stderr.on('data', handleData);
 
     setTimeout(() => {
         if(!linkGenerated) {
-            child.kill('SIGKILL'); delete runningSessions[sessionId];
+            child.kill('SIGKILL'); 
+            delete runningSessions[sessionId];
             res.json({ success: false, message: "Timeout: SSHX link not generated. Try again." });
         }
-    }, 15000); 
+    }, 12000); 
 });
 
+// --- Kill VPS Session ---
 app.post('/api/kill-vps', (req, res) => {
     const { id } = req.body;
     if(runningSessions[id]) {
-        runningSessions[id].kill('SIGKILL'); delete runningSessions[id];
-        const vpsIndex = db.vps.findIndex(v => v.id === parseInt(id));
-        if(vpsIndex !== -1) { db.vps[vpsIndex].status = 'Terminated'; saveDB(); }
-        res.json({ success: true, message: "Session terminated!" });
-    } else {
-        res.status(404).json({ success: false, message: "Session not found." });
+        runningSessions[id].kill('SIGKILL'); 
+        delete runningSessions[id];
     }
+    // Also mark as terminated in DB
+    const vpsIndex = db.vps.findIndex(v => v.id === parseInt(id));
+    if(vpsIndex !== -1) { 
+        db.vps[vpsIndex].status = 'Terminated'; 
+        saveDB(); 
+    }
+    res.json({ success: true, message: "Session terminated!" });
 });
 
-// Fixed Web Hosting (Ngrok or Cloudflare)
+// --- Web Hosting (Ngrok/Cloudflare) ---
 app.post('/api/host', async (req, res) => {
     const { projectName, htmlCode, provider, ngrokToken } = req.body;
     const hostDir = path.join(__dirname, 'hosting', projectName.replace(/\s+/g, '-'));
@@ -149,5 +196,6 @@ app.post('/api/host', async (req, res) => {
     }
 });
 
+// --- Get DB ---
 app.get('/api/database', (req, res) => res.json(db));
 app.listen(3000, () => console.log('Sinket VPS Backend Running on Port 3000'));
