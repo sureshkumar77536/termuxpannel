@@ -72,4 +72,4 @@ bash install.sh
 6. Apna Username aur Password daalein aur **Boom! Aapka Panel Live hai!** 🔥
 
 ---
-*Created and Maintained by Suresh*
+*Created and Maintained by Prabhat*
