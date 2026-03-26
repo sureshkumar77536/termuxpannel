@@ -1,13 +1,15 @@
 {
   "name": "termux-pro-panel",
-  "version": "2.0.0",
-  "description": "Advanced Termux VPS Panel",
+  "version": "3.0.0",
+  "description": "Sinket VPS Termux Panel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "ngrok": "^5.0.0-beta.2",
+    "cors": "^2.8.5"
   }
 }
