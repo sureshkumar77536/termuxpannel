@@ -44,9 +44,8 @@
         .input-field { width: 100%; padding: 12px 15px; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; font-size: 14px; outline: none; }
         .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.2); }
         
-        /* Dynamic OS Label */
         .os-label { border: 2px solid var(--accent); background: rgba(48, 209, 88, 0.1); border-radius: 12px; padding: 20px; text-align: center; position: relative; width: 100%; max-width: 300px; margin-bottom: 20px; }
-        .os-name { font-weight: bold; color: #fff; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .os-name { font-weight: bold; color: #fff; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
         .os-check { position: absolute; top: 10px; right: 10px; color: var(--accent); font-size: 18px; }
 
         .btn { padding: 12px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; color: #fff; transition: 0.2s; }
@@ -54,11 +53,18 @@
         .btn-primary:hover { transform: scale(1.02); }
         .btn-danger { background: linear-gradient(135deg, var(--danger), #b33a32); }
 
-        /* Bigger Terminal */
-        .terminal-window { background: #050505; border-radius: 10px; border: 1px solid #333; height: 65vh; min-height: 400px; font-family: 'SF Mono', monospace; padding: 20px; color: #0f0; overflow-y: auto; font-size: 14px; word-wrap: break-word; line-height: 1.5; }
-        .term-input-row { display: flex; gap: 10px; margin-top: 15px; }
+        /* Enhanced Terminal CSS */
+        .terminal-window { background: #050505; border-radius: 10px; border: 1px solid #333; height: 60vh; min-height: 400px; font-family: 'SF Mono', monospace; padding: 20px; color: #0f0; overflow-y: auto; font-size: 13px; line-height: 1.6; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        .term-input-row { display: flex; gap: 10px; margin-top: 15px; align-items: center; }
         .term-input { flex: 1; background: transparent; border: none; color: #fff; font-family: 'SF Mono', monospace; outline: none; font-size: 14px; }
-        .terminal-output-stream { color: #fff; white-space: pre-wrap; font-family: 'SF Mono', monospace; }
+        .terminal-output-stream { color: #fff; white-space: pre-wrap; font-family: 'SF Mono', monospace; word-wrap: break-word; }
+
+        /* FIXED TABLE CSS (Horizontal Scroll) */
+        .puffer-table-container { border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; margin-top: 20px; background: var(--bg-card); -webkit-overflow-scrolling: touch; }
+        .puffer-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; /* Forces scroll on mobile */ }
+        .puffer-table th { text-align: left; padding: 15px; border-bottom: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; font-size: 11px; white-space: nowrap; }
+        .puffer-table td { padding: 15px; border-bottom: 1px solid #222; white-space: nowrap; }
+        .link-text { color: var(--accent); text-decoration: none; font-weight: bold; background: rgba(48,209,88,0.1); padding: 5px 10px; border-radius: 5px; }
 
         @media (max-width: 768px) {
             .mobile-menu-icon { display: block; }
@@ -69,12 +75,6 @@
             .top-nav-right { display: none; }
             .terminal-window { height: 50vh; }
         }
-        
-        .puffer-table-container { border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; margin-top: 20px; background: var(--bg-card); }
-        .puffer-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
-        .puffer-table th { text-align: left; padding: 15px; border-bottom: 1px solid var(--border); color: var(--text-muted); text-transform: uppercase; font-size: 11px; }
-        .puffer-table td { padding: 15px; border-bottom: 1px solid #222; }
-        .link-text { color: var(--accent); text-decoration: none; font-weight: bold; }
 
         .login-overlay { position: fixed; inset: 0; background: var(--bg-main); display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .login-box { background: var(--bg-card); border-radius: 15px; padding: 40px; width: 380px; text-align: center; border: 1px solid var(--border); }
@@ -123,14 +123,14 @@
             </div>
 
             <div id="terminal" class="section">
-                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Termux Terminal (Live Stream)</h1>
+                <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Termux Terminal (Clean Stream)</h1>
                 <div class="puffer-card" style="padding: 10px;">
                     <div class="terminal-window" id="termBody" onclick="document.getElementById('termInput').focus()">
                         <div style="color: #888; margin-bottom: 10px;">Authenticated. Terminal Connected to Backend.</div>
                         <div id="termOutput"></div>
                         <div class="term-input-row">
                             <span style="color:var(--accent); font-weight:bold;">root:~#</span>
-                            <input type="text" class="term-input" id="termInput" onkeypress="handleStreamCommand(event)" placeholder="Enter command...">
+                            <input type="text" class="term-input" id="termInput" onkeypress="handleStreamCommand(event)" placeholder="Enter command..." autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -148,8 +148,7 @@
                     </div>
                     
                     <label class="input-label">Assigned Operating System</label>
-                    <div id="dynamicOsGrid">
-                        </div>
+                    <div id="dynamicOsGrid"></div>
                     
                     <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="createVPS()">🚀 Generate Secure Link</button>
                 </div>
@@ -222,7 +221,6 @@
             } else alert("Invalid Credentials");
         }
 
-        // --- THE EXACT LIVE STREAMING TERMINAL FUNCTION ---
         async function handleStreamCommand(e) {
             if(e.key === 'Enter') {
                 const cmd = document.getElementById('termInput').value;
@@ -231,7 +229,6 @@
                 const outDiv = document.getElementById('termOutput');
                 outDiv.innerHTML += `<div style="color:var(--accent); margin-top:10px;">root:~# ${cmd}</div>`;
                 
-                // Create a container for the incoming stream
                 const streamContainer = document.createElement('div');
                 streamContainer.className = 'terminal-output-stream';
                 outDiv.appendChild(streamContainer);
@@ -247,11 +244,9 @@
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder("utf-8");
                     
-                    // Read data chunk by chunk exactly as it arrives
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
                         const chunk = decoder.decode(value, { stream: true });
                         streamContainer.innerHTML += chunk;
                         document.getElementById('termBody').scrollTop = document.getElementById('termBody').scrollHeight;
@@ -319,13 +314,13 @@
             document.getElementById('ramStats').innerText = `${data.freeMem} / ${data.totalMem} GB`;
             document.getElementById('storageStats').innerText = data.freeStorage;
             
-            // Dynamic OS Label Injection based on Backend data
             const currentOs = data.os ? data.os.toUpperCase() : "UNKNOWN";
             document.getElementById('osStats').innerText = currentOs;
             
             document.getElementById('dynamicOsGrid').innerHTML = `
                 <div class="os-label">
-                    <div class="os-name">${currentOs} (Active Environment)</div>
+                    <div class="os-name">${currentOs}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:5px;">(Active Environment)</div>
                     <span class="os-check">✓</span>
                 </div>
             `;
@@ -338,7 +333,7 @@
                 <td><div style="font-weight:700;">${v.vpsName}</div><div style="color:var(--text-muted); font-size:11px">User: ${v.username} (OS: ${v.os.toUpperCase()})</div></td>
                 <td><span style="color:var(--accent)">${v.ram}</span> / <span style="color:#bf5af2">${v.storage}</span></td>
                 <td style="color: ${v.status === 'Running' ? 'var(--accent)' : 'var(--danger)'}"><b>${v.status}</b></td>
-                <td><a href="${v.link}" target="_blank" class="link-text">${v.link}</a></td>
+                <td><a href="${v.link}" target="_blank" class="link-text" onclick="event.stopPropagation(); window.open('${v.link}', '_blank');">${v.link}</a></td>
                 <td>${v.status === 'Running' ? `<button class="btn btn-danger" style="font-size:11px; padding:6px 12px;" onclick="killVps('${v.id}', this)">Kill Session</button>` : `<span style="color:var(--text-muted)">Terminated</span>`}</td>
             `;
             table.appendChild(tr);
